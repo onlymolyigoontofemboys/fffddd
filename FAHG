@@ -513,63 +513,69 @@ function DeadcellUI.CreateWindow()
             return SubSection
         end
 
-        -- AddToggle (corrigido)
-        function Section:AddToggle(labelText, default, cb, swatchColor)
-            local state = default==true
-            local row = new("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1},items)
-        
-            local box = new("Frame",{
-                Size=UDim2.new(0,10,0,10), Position=UDim2.new(0,0,0.5,-5),
-                BackgroundColor3=state and ACC or BG_IN, BorderSizePixel=0,
+        -- AddToggle
+        function Section:AddToggle(labelText, default, cb, swatchColor, onColorChange)
+        local state = default==true
+        local row = new("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1},items)
+    
+        local box = new("Frame",{
+            Size=UDim2.new(0,10,0,10), Position=UDim2.new(0,0,0.5,-5),
+            BackgroundColor3=state and ACC or BG_IN, BorderSizePixel=0,
+        }, row)
+        local bs = stroke(box, state and ACC or Color3.fromRGB(75,75,78), 1)
+        local tick = new("TextLabel",{
+            Size=UDim2.new(1,0,1,0), BackgroundTransparency=1,
+            Text="✓", TextColor3=WHITE, FontFace=FONT, TextSize=9,
+            TextTransparency=state and 0 or 1,
+        }, box)
+    
+        new("TextLabel",{
+            Size=UDim2.new(1,-28,1,0), Position=UDim2.new(0,18,0,0),
+            BackgroundTransparency=1, Text=labelText, TextColor3=TXT,
+            FontFace=FONT, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left,
+        }, row)
+    
+        if swatchColor then
+            local sw = new("TextButton",{
+                Size=UDim2.new(0,14,0,10), 
+                Position=UDim2.new(1,-16,0.5,-5),
+                BackgroundColor3=swatchColor, 
+                BorderSizePixel=0, 
+                Text="",
+                AutoButtonColor=false,
+                ZIndex=6,
             }, row)
-            local bs = stroke(box, state and ACC or Color3.fromRGB(75,75,78), 1)
-            local tick = new("TextLabel",{
-                Size=UDim2.new(1,0,1,0), BackgroundTransparency=1,
-                Text="✓", TextColor3=WHITE, FontFace=FONT, TextSize=9,
-                TextTransparency=state and 0 or 1,
-            }, box)
-        
-            -- Label do toggle
-            new("TextLabel",{
-                Size=UDim2.new(1,-28,1,0), Position=UDim2.new(0,18,0,0),
-                BackgroundTransparency=1, Text=labelText, TextColor3=TXT,
-                FontFace=FONT, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left,
-            }, row)
-        
-            -- Swatch opcional (direita)
-            if swatchColor then
-                local sw = new("Frame",{
-                    Size=UDim2.new(0,14,0,10), Position=UDim2.new(1,-16,0.5,-5),
-                    BackgroundColor3=swatchColor, BorderSizePixel=0, ZIndex=3,
-                }, row)
-                corner(sw,1)
-                stroke(sw, Color3.fromRGB(75,75,78), 1) -- Borda mais escura para destacar
-            end
-        
-            -- Área de clique do toggle
-            local ca = new("TextButton",{
-                Size=UDim2.new(1,-20,1,0), BackgroundTransparency=1, Text="", ZIndex=4,
-            }, row)
+            corner(sw, 2)
+            stroke(sw, Color3.fromRGB(100,100,100), 1)
             
-            ca.MouseButton1Click:Connect(function()
-                state = not state
-                -- Animação suave
-                tw(box, {BackgroundColor3=state and ACC or BG_IN})
-                bs.Color = state and ACC or Color3.fromRGB(75,75,78)
-                tick.TextTransparency = state and 0 or 1
-                if cb then cb(state) end
+            sw.MouseButton1Click:Connect(function()
+                local picker = Visuals:AddColorPicker("", swatchColor, function(novaCor)
+                    sw.BackgroundColor3 = novaCor
+                    if onColorChange then onColorChange(novaCor) end
+                end)
             end)
-        
-            local T = {}
-            function T:Set(v)
-                state = v
-                box.BackgroundColor3 = state and ACC or BG_IN
-                bs.Color = state and ACC or Color3.fromRGB(75,75,78)
-                tick.TextTransparency = state and 0 or 1
-            end
-            function T:Get() return state end
-            return T
         end
+    
+        local ca = new("TextButton",{
+            Size=UDim2.new(1,-40,1,0),
+            BackgroundTransparency=1, 
+            Text="", 
+            ZIndex=4,
+        }, row)
+        
+        ca.MouseButton1Click:Connect(function()
+            state = not state
+            tw(box, {BackgroundColor3=state and ACC or BG_IN})
+            bs.Color = state and ACC or Color3.fromRGB(75,75,78)
+            tick.TextTransparency = state and 0 or 1
+            if cb then cb(state) end
+        end)
+    
+        local T = {}
+        function T:Set(v) state = v; box.BackgroundColor3 = state and ACC or BG_IN; bs.Color = state and ACC or Color3.fromRGB(75,75,78); tick.TextTransparency = state and 0 or 1 end
+        function T:Get() return state end
+        return T
+    end
 
         -- AddSlider
         function Section:AddSlider(labelText, minV, maxV, defV, cb, sfx)
