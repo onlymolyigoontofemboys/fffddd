@@ -50,7 +50,7 @@ do
         }))
         FONT = Font.new(getcustomasset("PixelDC.font"))
     end)
-    if not ok then FONT = Font.new("rbxasset://fonts/families/RobotoMono.json") end
+    if not ok then FONT = Font.new("rbxasset://fonts/families/Inconsolata.json") end
 end
 
 local BG      = Color3.fromRGB(26,26,28)
