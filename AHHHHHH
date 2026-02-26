@@ -32,7 +32,6 @@
 
 local TS  = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
-local HS  = game:GetService("HttpService")
 local CG  = game:GetService("CoreGui")
 
 local FONT
@@ -44,13 +43,9 @@ do
                 "https://raw.githubusercontent.com/onlymolyigoontofemboys/BETA/main/smallest_pixel-7.ttf"
             ))
         end
-        writefile("PixelDC.font", HS:JSONEncode({
-            name  = "PixelDC",
-            faces = {{ name="Regular", weight=400, style="normal", assetId=getcustomasset(aid) }},
-        }))
-        FONT = Font.new(getcustomasset("PixelDC.font"))
+        FONT = Font.new(getcustomasset(aid))
     end)
-    if not ok then FONT = Font.new("rbxasset://fonts/families/Inconsolata.json") end
+    if not ok then FONT = Font.new("rbxasset://fonts/families/RobotoMono.json") end
 end
 
 local BG      = Color3.fromRGB(26,26,28)
@@ -891,46 +886,93 @@ function Library.CreateWindow()
         end
 
         function Section:AddKeybind(labelText, default, cb)
-            local key=default or ""; local waiting=false; local lc=nil
-            local wrap=new("Frame",{Size=UDim2.new(1,0,0,42),BackgroundTransparency=1},items)
+            local key = default or ""
+            local waiting = false
+            local lc = nil
+
+            local IGNORED_KEYS = {
+                Unknown=true, Escape=true,
+                LeftShift=true, RightShift=true,
+                LeftControl=true, RightControl=true,
+                LeftAlt=true, RightAlt=true,
+                LeftMeta=true, RightMeta=true,
+                CapsLock=true, NumLock=true, ScrollLock=true,
+            }
+
+            local MOUSE_NAMES = {
+                [Enum.UserInputType.MouseButton1] = "MB1",
+                [Enum.UserInputType.MouseButton2] = "MB2",
+                [Enum.UserInputType.MouseButton3] = "MB3",
+            }
+
+            local wrap = new("Frame",{Size=UDim2.new(1,0,0,42),BackgroundTransparency=1},items)
             new("TextLabel",{
                 Size=UDim2.new(1,0,0,13), BackgroundTransparency=1,
                 Text=labelText, TextColor3=TXT_D, FontFace=FONT, TextSize=10,
                 TextXAlignment=Enum.TextXAlignment.Left,
             },wrap)
-            local bb=new("TextButton",{
+            local bb = new("TextButton",{
                 Size=UDim2.new(0.6,0,0,22), Position=UDim2.new(0,0,0,15),
                 BackgroundColor3=BG_IN, BorderSizePixel=0,
                 Text=key=="" and "[ ... ]" or "[ "..key.." ]",
                 TextColor3=TXT, FontFace=FONT, TextSize=11, AutoButtonColor=false,
             },wrap)
             stroke(bb,BOR,1)
-            local xb=new("TextButton",{
+            local xb = new("TextButton",{
                 Size=UDim2.new(0,18,0,18), Position=UDim2.new(0.6,4,0,17),
                 BackgroundColor3=BG_ITEM, BorderSizePixel=0,
                 Text="x", TextColor3=TXT_D, FontFace=FONT, TextSize=10,
                 AutoButtonColor=false, Visible=key~="",
             },wrap)
             corner(xb,1)
+
+            local function capture(name)
+                key = name
+                bb.Text = "[ "..key.." ]"
+                bb.TextColor3 = TXT
+                xb.Visible = true
+                waiting = false
+                if lc then lc:Disconnect(); lc=nil end
+                if cb then cb(key) end
+            end
+
             bb.MouseButton1Click:Connect(function()
-                if waiting then return end
-                waiting=true; bb.Text="[ ... ]"; bb.TextColor3=ACC_LT
+                if waiting then
+                    waiting = false
+                    bb.Text = key=="" and "[ ... ]" or "[ "..key.." ]"
+                    bb.TextColor3 = TXT
+                    if lc then lc:Disconnect(); lc=nil end
+                    return
+                end
+                waiting = true
+                bb.Text = "[ ? ]"
+                bb.TextColor3 = ACC_LT
                 if lc then lc:Disconnect() end
-                lc=UIS.InputBegan:Connect(function(i,gpe)
-                    if gpe then return end
-                    if i.UserInputType==Enum.UserInputType.Keyboard then
-                        key=i.KeyCode.Name; bb.Text="[ "..key.." ]"; bb.TextColor3=TXT
-                        xb.Visible=true; waiting=false; lc:Disconnect()
-                        if cb then cb(key) end
+                lc = UIS.InputBegan:Connect(function(i, gpe)
+                    if not waiting then return end
+                    local mt = MOUSE_NAMES[i.UserInputType]
+                    if mt then
+                        capture(mt)
+                        return
+                    end
+                    if i.UserInputType == Enum.UserInputType.Keyboard then
+                        local kn = i.KeyCode.Name
+                        if IGNORED_KEYS[kn] then return end
+                        capture(kn)
                     end
                 end)
             end)
+
             xb.MouseButton1Click:Connect(function()
-                key=""; bb.Text="[ ... ]"; xb.Visible=false
+                key = ""
+                bb.Text = "[ ... ]"
+                xb.Visible = false
                 if cb then cb(key) end
             end)
-            local K={}
+
+            local K = {}
             function K:Get() return key end
+            function K:Set(v) key=v; bb.Text=v=="" and "[ ... ]" or "[ "..v.." ]"; xb.Visible=v~="" end
             return K
         end
 
